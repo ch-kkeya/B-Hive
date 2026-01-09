@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>B-Hive v6.0: Performance & UX</title>
+    
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script type="text/javascript">
+       (function(){
+          emailjs.init("YeBpgs1OMwiXLp7LE"); // REPLACE WITH YOUR KEY
+       })();
+    </script>
+
+    <style>
+        /* --- PERFORMANCE & THEME --- */
+        :root {
+            --bg-app: #f0f2f5;
+            --bg-panel: #ffffff;
+            --text-main: #1c1e21;
+            --text-sub: #65676b;
+            --accent: #FF9F1C;
+            --accent-grad: linear-gradient(135deg, #FFC107 0%, #FF9F1C 100%);
+            --border: #ced0d4;
+            --shadow: 0 4px 12px rgba(0,0,0,0.1);
+            --radius: 12px;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --ease: cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        
+        body.dark-mode {
+            --bg-app: #18191a;
+            --bg-panel: #242526;
+            --text-main: #e4e6eb;
+            --text-sub: #b0b3b8;
+            --border: #3e4042;
+            --shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            background: var(--bg-app); color: var(--text-main); font-family: var(--font); 
+            height: 100vh; overflow: hidden; 
+            /* GPU Acceleration for background color change */
+            will-change: background-color; 
+            transition: background-color 0.3s var(--ease);
+        }
+
+        /* --- GLOBAL UTILS --- */
+        .hidden { display: none !important; }
+        .glass { background: var(--bg-panel); border: 1px solid var(--border); box-shadow: var(--shadow); border-radius: var(--radius); }
+        
+        .btn { padding: 12px 20px; border: none; border-radius: 8px; background: var(--accent-grad); color: white; font-weight: 600; cursor: pointer; transition: transform 0.1s var(--ease), opacity 0.2s; width: 100%; }
+        .btn:active { transform: scale(0.97); }
+        .btn-ghost { background: transparent; color: var(--text-sub); border: 1px solid var(--border); }
+        .btn-sm { padding: 8px 12px; font-size: 13px; width: auto; }
+        
+        .input-box { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-app); color: var(--text-main); font-size: 15px; transition: border-color 0.2s; }
+        .input-box:focus { border-color: var(--accent); background: var(--bg-panel); }
+
+        /* --- ANIMATIONS (CSS for Performance) --- */
+        @keyframes fadeInScale { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+        .animate-pop { animation: fadeInScale 0.3s var(--ease) forwards; }
+        .animate-slide { animation: slideInRight 0.3s var(--ease) forwards; }
+
+        /* --- LAYOUTS --- */
+        .screen { width: 100%; height: 100%; display: flex; flex-direction: column; position: absolute; top: 0; left: 0; background: var(--bg-app); z-index: 10; }
+        .center-flex { align-items: center; justify-content: center; padding: 20px; }
+        .auth-card { width: 100%; max-width: 400px; padding: 30px; text-align: center; }
+        .brand { font-size: 32px; font-weight: 900; background: var(--accent-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 20px; }
+
+        /* --- DASHBOARD --- */
+        .layout { display: flex; width: 100%; height: 100%; }
+        
+        .sidebar { width: 260px; background: var(--bg-panel); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; z-index: 50; }
+        .menu-item { display: flex; align-items: center; gap: 15px; padding: 12px; border-radius: 10px; color: var(--text-sub); cursor: pointer; margin-bottom: 5px; transition: background 0.2s; }
+        .menu-item:hover, .menu-item.active { background: rgba(255, 159, 28, 0.1); color: var(--accent); font-weight: 600; }
+        
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        .top-bar { height: 60px; background: var(--bg-panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; justify-content: space-between; }
+        
+        .content-scroll { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 100px; scroll-behavior: smooth; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+
+        /* --- CARDS --- */
+        .card { background: var(--bg-panel); border-radius: 16px; overflow: hidden; border: 1px solid var(--border); cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .card-thumb { height: 160px; background: #222; position: relative; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; }
+        .card-info { padding: 15px; }
+
+        /* --- CHAT ENHANCED --- */
+        .chat-layout { display: flex; height: 100%; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: var(--bg-panel); }
+        .chat-sidebar { width: 300px; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+        .chat-main { flex: 1; display: flex; flex-direction: column; background: var(--bg-app); }
+        .chat-msgs { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .msg { padding: 10px 16px; border-radius: 18px; max-width: 75%; font-size: 14px; line-height: 1.4; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .msg.sent { align-self: flex-end; background: var(--accent-grad); color: white; border-bottom-right-radius: 4px; }
+        .msg.rcvd { align-self: flex-start; background: var(--bg-panel); border-bottom-left-radius: 4px; border: 1px solid var(--border); }
+        .contact-item { padding: 15px; display: flex; gap: 12px; align-items: center; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.2s; }
+        .contact-item:hover, .contact-item.active { background: rgba(0,0,0,0.03); }
+
+        /* --- MODALS (Draggable & Resizable) --- */
+        .modal { 
+            position: absolute; top: 20%; left: 30%; width: 360px; height: 450px; 
+            z-index: 200; display: flex; flex-direction: column; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            /* Enable Resize */
+            resize: both; overflow: hidden; min-width: 300px; min-height: 200px;
+        }
+        .modal-head { 
+            padding: 12px 15px; background: var(--accent-grad); color: white; 
+            cursor: move; display: flex; justify-content: space-between; font-weight: bold; 
+            flex-shrink: 0;
+        }
+        .modal-body { flex: 1; overflow-y: auto; background: var(--bg-panel); display: flex; flex-direction: column; }
+
+        /* --- FAB --- */
+        .fab-container { position: absolute; bottom: 30px; right: 30px; z-index: 90; display: flex; flex-direction: column; gap: 15px; transition: opacity 0.3s; }
+        .fab { width: 56px; height: 56px; border-radius: 50%; background: var(--accent-grad); color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 15px rgba(255,159,28,0.4); cursor: pointer; transition: transform 0.2s; }
+        .fab:hover { transform: scale(1.1); }
+        .fab.secondary { width: 48px; height: 48px; background: #2d3436; font-size: 20px; }
+
+        /* --- MOBILE --- */
+        @media (max-width: 768px) {
+            .layout { flex-direction: column; }
+            .sidebar { 
+                position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; 
+                flex-direction: row; padding: 0; border-right: none; border-top: 1px solid var(--border);
+                justify-content: space-around; align-items: center;
+            }
+            .brand, .menu-label, .logout-link { display: none; }
+            .menu-item { flex-direction: column; padding: 5px; gap: 0; font-size: 10px; background: transparent !important; }
+            .menu-icon { font-size: 24px; }
+            .grid { grid-template-columns: 1fr; }
+            .chat-layout { flex-direction: column; }
+            .chat-sidebar { width: 100%; height: 60px; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--border); }
+            .contact-item { padding: 10px; min-width: 60px; justify-content: center; }
+            .contact-name { display: none; }
+            .modal { width: 90% !important; height: 60% !important; left: 5% !important; top: 10% !important; resize: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast-box" style="position:fixed; bottom:80px; left:50%; transform:translateX(-50%); z-index:1000;"></div>
+
+    <div id="screen-splash" class="screen center-flex">
+        <div class="auth-card glass animate-pop">
+            <div class="brand">B-HIVE</div>
+            <p style="margin-bottom:30px; color:var(--text-sub);">The Ultimate Social Learning Platform</p>
+            <button class="btn" onclick="navTo('screen-login')">Get Started</button>
+        </div>
+    </div>
+
+    <div id="screen-login" class="screen center-flex hidden">
+        <div class="auth-card glass animate-pop">
+            <h2>Welcome Back</h2>
+            <br>
+            <input type="text" id="l-user" class="input-box" placeholder="Username (demo)">
+            <input type="password" id="l-pass" class="input-box" placeholder="Password (123)">
+            <button class="btn" style="margin-top:10px;" onclick="handleLogin()">Sign In</button>
+            <div style="margin-top:20px; font-size:13px;">
+                <span style="color:var(--accent); cursor:pointer; font-weight:bold;" onclick="navTo('screen-reg')">Create Account</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-reg" class="screen center-flex hidden">
+        <div class="auth-card glass animate-pop">
+            <h2>Join B-Hive</h2>
+            <div id="reg-s1">
+                <input type="text" id="r-user" class="input-box" placeholder="Username">
+                <input type="email" id="r-mail" class="input-box" placeholder="Email">
+                <input type="password" id="r-pass" class="input-box" placeholder="Password">
+            </div>
+            <div id="reg-s2" class="hidden">
+                <p style="color:green; font-weight:bold;">OTP Sent!</p>
+                <input type="text" id="r-otp" class="input-box" placeholder="Enter OTP">
+            </div>
+            <button class="btn" id="btn-reg" style="margin-top:10px;" onclick="initiateReg()">Get OTP</button>
+            <button class="btn-ghost" style="margin-top:10px; width:100%;" onclick="navTo('screen-login')">Cancel</button>
+        </div>
+    </div>
+
+    <div id="screen-app" class="screen hidden">
+        <div class="layout">
+            <nav class="sidebar">
+                <div class="brand" style="font-size:24px; margin-bottom:30px;">B-HIVE</div>
+                <div class="menu-item active" onclick="loadView('home')"><span class="menu-icon">🏠</span><span class="menu-label">Home</span></div>
+                <div class="menu-item" onclick="loadView('chats')"><span class="menu-icon">💬</span><span class="menu-label">Chats</span></div>
+                <div class="menu-item" onclick="loadView('profile')"><span class="menu-icon">👤</span><span class="menu-label">Profile</span></div>
+                <div class="menu-item" onclick="loadView('history')"><span class="menu-icon">🕒</span><span class="menu-label">History</span></div>
+                <div style="flex:1"></div>
+                <div class="menu-item logout-link" onclick="location.reload()"><span class="menu-icon">🚪</span><span class="menu-label">Logout</span></div>
+            </nav>
+
+            <div class="main">
+                <div class="top-bar">
+                    <div style="flex:1; max-width:400px; display:flex; align-items:center; background:var(--bg-app); border-radius:20px; padding:0 15px; border:1px solid var(--border);">
+                        🔍 <input type="text" placeholder="Search..." style="border:none; background:transparent; flex:1; height:38px; color:var(--text-main);" oninput="doSearch(this.value)">
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-sm" onclick="toggleUpload()">+ Upload</button>
+                        <button class="btn-ghost btn-sm" onclick="document.body.classList.toggle('dark-mode')">🌗</button>
+                    </div>
+                </div>
+
+                <div id="view-area" class="content-scroll"></div>
+                
+                <div id="fab-group" class="fab-container">
+                    <div class="fab secondary" onclick="toggleAI()" title="AI Helper">🤖</div>
+                    <div class="fab" onclick="toggleScratch()" title="Scratchpad">✎</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-upload" class="modal glass hidden" style="left:50%; top:15%; transform:translateX(-50%);">
+        <div class="modal-head" onmousedown="dragStart(event, 'modal-upload')">
+            <span>Upload Content</span><span style="cursor:pointer;" onclick="toggleUpload()">✕</span>
+        </div>
+        <div class="modal-body" style="padding:20px;">
+            <input type="text" id="up-title" class="input-box" placeholder="Title">
+            <select id="up-type" class="input-box" onchange="toggleUpInputs()">
+                <option value="video">YouTube Link</option>
+                <option value="local">Local Video</option>
+                <option value="pdf">PDF File</option>
+            </select>
+            <input type="text" id="up-link" class="input-box" placeholder="Paste YouTube URL">
+            <input type="file" id="up-file" class="input-box hidden">
+            <button class="btn" style="margin-top:15px;" onclick="doUpload()">Publish</button>
+        </div>
+    </div>
+
+    <div id="modal-scratch" class="modal glass hidden">
+        <div class="modal-head" onmousedown="dragStart(event, 'modal-scratch')">
+            <span>📝 Scratchpad</span><span style="cursor:pointer;" onclick="toggleScratch()">✕</span>
+        </div>
+        <div class="modal-body">
+            <textarea id="scratch-txt" style="flex:1; padding:15px; border:none; resize:none; background:var(--bg-panel); color:var(--text-main);" placeholder="Write notes here..."></textarea>
+            <button class="btn" style="border-radius:0;" onclick="dlNote()">Save Note</button>
+        </div>
+    </div>
+
+    <div id="modal-ai" class="modal glass hidden" style="right:50px; left:auto;">
+        <div class="modal-head" onmousedown="dragStart(event, 'modal-ai')">
+            <span>🤖 AI Assistant</span><span style="cursor:pointer;" onclick="toggleAI()">✕</span>
+        </div>
+        <div class="modal-body">
+            <div id="ai-chat" style="flex:1; padding:15px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
+                <div class="msg rcvd">Hi! Need help with your studies?</div>
+            </div>
+            <div style="padding:10px; display:flex; gap:10px; background:var(--bg-app);">
+                <input type="text" id="ai-q" class="input-box" style="margin:0;" placeholder="Ask anything...">
+                <button class="btn" style="width:auto;" onclick="askAI()">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIG
+        const SERVICE_ID = "service_vihw7oc"; 
+        const TEMPLATE_ID = "template_ti87l42";
+        const API_KEY = "AIzaSyAzr97nSI1wt3eG_CEYt9LosJjm6eWMYtY";
+
+        // STATE
+        let DB = {
+            users: JSON.parse(localStorage.getItem('b6_users')) || [],
+            posts: JSON.parse(localStorage.getItem('b6_posts')) || [
+                {id:1, title:"React Tutorial", type:"video", src:"w7ejDZ8SWv8", author:"CodeMaster"},
+                {id:2, title:"Design System PDF", type:"pdf", src:"", author:"UXPro"}
+            ],
+            chats: JSON.parse(localStorage.getItem('b6_chats')) || [
+                {name:"CodeMaster", msgs:[{from:"them", text:"Welcome!"}]},
+                {name:"StudyGroup", msgs:[{from:"them", text:"Join us at 5"}]}
+            ],
+            history: []
+        };
+        let currentUser = null;
+        let otpCode = null;
+        let activeChatIdx = 0;
+
+        // AUTH
+        function navTo(id) {
+            document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        }
+        function toast(msg) {
+            const t = document.createElement('div');
+            t.className = 'toast'; t.innerText = msg;
+            document.getElementById('toast-box').appendChild(t);
+            setTimeout(()=>t.remove(), 3000);
+        }
+        function handleLogin() {
+            const u = document.getElementById('l-user').value;
+            const p = document.getElementById('l-pass').value;
+            const user = DB.users.find(x => x.u === u && x.p === p);
+            if(user || (u=='demo' && p=='123')) {
+                currentUser = user || {u:'DemoUser', bio:'Learning everyday'};
+                navTo('screen-app'); loadView('home');
+            } else toast("Invalid Login");
+        }
+        function initiateReg() {
+            const u = document.getElementById('r-user').value;
+            const e = document.getElementById('r-mail').value;
+            if(!u || !e) return toast("Fill fields");
+            
+            otpCode = Math.floor(1000 + Math.random()*9000);
+            document.getElementById('btn-reg').innerText = "Sending...";
+            
+            emailjs.send(SERVICE_ID, TEMPLATE_ID, {to_name:u, to_email:e, passcode:otpCode})
+            .then(()=>{
+                document.getElementById('reg-s1').classList.add('hidden');
+                document.getElementById('reg-s2').classList.remove('hidden');
+                document.getElementById('btn-reg').innerText = "Register";
+                document.getElementById('btn-reg').onclick = finishReg;
+            }).catch(()=>toast("Email Failed"));
+        }
+        function finishReg() {
+            if(document.getElementById('r-otp').value != otpCode) return toast("Wrong OTP");
+            const u = document.getElementById('r-user').value;
+            const p = document.getElementById('r-pass').value;
+            DB.users.push({u, p, bio:"New Member"});
+            localStorage.setItem('b6_users', JSON.stringify(DB.users));
+            navTo('screen-login'); toast("Created!");
+        }
+
+        // VIEWS
+        const view = document.getElementById('view-area');
+        
+        function loadView(v) {
+            // Manage Active Menu
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            // Toggle FAB visibility
+            const fabGroup = document.getElementById('fab-group');
+            if(v === 'chats') fabGroup.classList.add('hidden'); 
+            else fabGroup.classList.remove('hidden');
+
+            view.innerHTML = "";
+            view.className = "content-scroll animate-pop";
+
+            if(v==='home') renderGrid(DB.posts);
+            if(v==='chats') renderChats();
+            if(v==='profile') renderProfile();
+            if(v==='history') renderGrid(DB.history);
+        }
+
+        function renderGrid(posts) {
+            view.innerHTML = `<div class="grid">${posts.map(p => `
+                <div class="card" onclick="openContent(${p.id})">
+                    <div class="card-thumb">${p.type=='video'?'▶':'📄'}</div>
+                    <div class="card-info">
+                        <b>${p.title}</b><br>
+                        <span style="font-size:12px; color:var(--text-sub)">${p.author}</span>
+                    </div>
+                </div>`).join('')}</div>`;
+        }
+
+        function openContent(id) {
+            const p = DB.posts.find(x => x.id == id);
+            DB.history.unshift(p);
+            
+            let content = "";
+            if(p.type === 'video') {
+                if(p.src.length === 11) content = `<iframe style="width:100%; height:350px; border-radius:12px;" src="https://www.youtube.com/embed/${p.src}" frameborder="0" allowfullscreen></iframe>`;
+                else content = `<video controls style="width:100%; border-radius:12px;" src="${p.src}"></video>`;
+            } else {
+                content = `<div style="padding:50px; text-align:center; background:var(--bg-app); border-radius:12px;"><h1>📄 PDF Preview</h1></div>`;
+            }
+
+            view.innerHTML = `
+                <button class="btn-ghost" style="margin-bottom:10px;" onclick="loadView('home')">← Back</button>
+                ${content}
+                <div class="glass" style="padding:20px; margin-top:20px;">
+                    <h2>${p.title}</h2>
+                    <p style="color:var(--text-sub); margin-top:5px;">Uploaded by ${p.author}</p>
+                </div>
+            `;
+        }
+
+        // CHAT ENHANCED
+        function renderChats() {
+            view.innerHTML = `
+            <div class="chat-layout">
+                <div class="chat-sidebar">
+                    ${DB.chats.map((c,i) => `
+                        <div class="contact-item ${i===activeChatIdx?'active':''}" onclick="activeChatIdx=${i}; renderChats()">
+                            <div style="width:40px; height:40px; background:#ddd; border-radius:50%;"></div>
+                            <span class="contact-name"><b>${c.name}</b></span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="chat-main">
+                    <div class="chat-msgs" id="msg-box">
+                        ${DB.chats[activeChatIdx].msgs.map(m => `<div class="msg ${m.from==='me'?'sent':'rcvd'}">${m.text}</div>`).join('')}
+                    </div>
+                    <div style="padding:15px; border-top:1px solid var(--border); display:flex; gap:10px;">
+                        <input id="chat-in" class="input-box" style="margin:0" placeholder="Type message...">
+                        <button class="btn" style="width:auto;" onclick="sendChat()">Send</button>
+                    </div>
+                </div>
+            </div>`;
+        }
+        function sendChat() {
+            const txt = document.getElementById('chat-in').value;
+            if(!txt) return;
+            DB.chats[activeChatIdx].msgs.push({from:'me', text:txt});
+            localStorage.setItem('b6_chats', JSON.stringify(DB.chats));
+            renderChats();
+        }
+
+        // PROFILE & EDIT
+        function renderProfile() {
+            view.innerHTML = `
+                <div class="glass" style="padding:30px;">
+                    <div style="display:flex; align-items:center; gap:20px;">
+                        <div style="width:80px; height:80px; background:var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:40px;">${currentUser.u[0]}</div>
+                        <div style="flex:1;">
+                            <h2 id="prof-name">${currentUser.u}</h2>
+                            <p id="prof-bio" style="color:var(--text-sub);">${currentUser.bio || 'No bio yet'}</p>
+                        </div>
+                        <button class="btn-ghost" onclick="toggleEditProfile()">Edit</button>
+                    </div>
+                    
+                    <div id="edit-area" class="hidden" style="margin-top:20px; border-top:1px solid var(--border); padding-top:20px;">
+                        <h4>Edit Profile</h4>
+                        <input id="e-bio" class="input-box" placeholder="Update Bio" value="${currentUser.bio||''}">
+                        <button class="btn" onclick="saveProfile()">Save Changes</button>
+                    </div>
+
+                    <div style="margin-top:30px; display:flex; gap:20px;">
+                        <div class="glass" style="padding:15px; flex:1; text-align:center;"><b>${DB.posts.filter(p=>p.author===currentUser.u).length}</b><br>Posts</div>
+                        <div class="glass" style="padding:15px; flex:1; text-align:center;"><b>12</b><br>Followers</div>
+                    </div>
+                </div>`;
+        }
+        function toggleEditProfile() { document.getElementById('edit-area').classList.toggle('hidden'); }
+        function saveProfile() {
+            currentUser.bio = document.getElementById('e-bio').value;
+            // Update in DB
+            const idx = DB.users.findIndex(u => u.u === currentUser.u);
+            if(idx >= 0) DB.users[idx] = currentUser;
+            localStorage.setItem('b6_users', JSON.stringify(DB.users));
+            renderProfile();
+            toast("Profile Updated");
+        }
+
+        // UTILS
+        function toggleUpload() { toggleModal('modal-upload'); }
+        function toggleScratch() { toggleModal('modal-scratch'); }
+        function toggleAI() { toggleModal('modal-ai'); }
+        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
+        
+        function toggleUpInputs() {
+            const t = document.getElementById('up-type').value;
+            document.getElementById('up-link').classList.toggle('hidden', t!=='video');
+            document.getElementById('up-file').classList.toggle('hidden', t==='video');
+        }
+        function doUpload() {
+            const t = document.getElementById('up-title').value;
+            const type = document.getElementById('up-type').value;
+            let src = "";
+            if(type==='video') src = document.getElementById('up-link').value;
+            else {
+                const f = document.getElementById('up-file').files[0];
+                if(f) src = URL.createObjectURL(f);
+            }
+            DB.posts.unshift({id:Date.now(), title:t, type, src, author:currentUser.u});
+            toggleUpload(); loadView('home'); toast("Posted!");
+        }
+        function dlNote() {
+            const t = document.getElementById('scratch-txt').value;
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t])); a.download="note.txt"; a.click();
+        }
+
+        // DRAG LOGIC
+        let activeModal=null, ox=0, oy=0;
+        function dragStart(e, id) {
+            activeModal = document.getElementById(id);
+            ox = e.clientX - activeModal.getBoundingClientRect().left;
+            oy = e.clientY - activeModal.getBoundingClientRect().top;
+            document.addEventListener('mousemove', dragMove);
+            document.addEventListener('mouseup', dragEnd);
+        }
+        function dragMove(e) {
+            if(!activeModal) return;
+            activeModal.style.left = (e.clientX - ox) + 'px';
+            activeModal.style.top = (e.clientY - oy) + 'px';
+            // Reset transform to avoid conflicts
+            activeModal.style.transform = 'none'; 
+        }
+        function dragEnd() {
+            activeModal = null;
+            document.removeEventListener('mousemove', dragMove);
+            document.removeEventListener('mouseup', dragEnd);
+        }
+
+        // AI
+        async function askAI() {
+            const q = document.getElementById('ai-q').value;
+            const box = document.getElementById('ai-chat');
+            box.innerHTML += `<div class="msg sent" style="color:white; align-self:flex-end;">${q}</div>`;
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({contents:[{parts:[{text:q}]}]})
+                });
+                const d = await res.json();
+                box.innerHTML += `<div class="msg rcvd">${d.candidates[0].content.parts[0].text}</div>`;
+            } catch(e) { box.innerHTML += `<div class="msg rcvd">AI Error</div>`; }
+        }
+
+    </script>
+</body>
+</html>
